@@ -1,4 +1,6 @@
+import cors from "cors";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
+import { env, type CorsOrigin } from "./env.js";
 import { checkHealth } from "./health.js";
 import { createLink, type LinkRecord } from "./links/index.js";
 
@@ -16,9 +18,26 @@ function toLinkResponse(link: LinkRecord) {
 /**
  * Builds the Express application. Kept separate from src/index.ts so
  * tests can import and exercise it with supertest without binding a port.
+ *
+ * `corsOrigin` is injectable (mirroring the pattern used by `checkHealth`
+ * in src/health.ts) so CORS behaviour can be unit tested for several
+ * CORS_ORIGIN values without relying on process.env at module load time.
  */
-export function createApp(): Express {
+export function createApp(corsOrigin: CorsOrigin = env.CORS_ORIGIN): Express {
   const app = express();
+
+  // Allows the web app to call the API from another origin (LAR-40). Which
+  // origins are allowed comes from CORS_ORIGIN (see src/env.ts): "*" allows
+  // any origin, otherwise only the configured comma separated list gets the
+  // Access-Control-Allow-Origin header. Registered before the routes so it
+  // also covers the browser's OPTIONS preflight for them.
+  app.use(
+    cors({
+      origin: corsOrigin,
+      methods: ["GET", "POST", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Authorization", "Content-Type"]
+    })
+  );
 
   app.use(express.json());
 

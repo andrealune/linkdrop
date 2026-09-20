@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { assertAdminTokenPresent } from "../src/env.js";
+import { assertAdminTokenPresent, parseCorsOrigin } from "../src/env.js";
 
 describe("assertAdminTokenPresent", () => {
   it("logs and exits with code 1 when LINKDROP_ADMIN_TOKEN is missing", () => {
@@ -30,5 +30,35 @@ describe("assertAdminTokenPresent", () => {
 
     expect(log).not.toHaveBeenCalled();
     expect(exit).not.toHaveBeenCalled();
+  });
+});
+
+describe("parseCorsOrigin", () => {
+  it("returns an empty allow-list when CORS_ORIGIN is unset", () => {
+    expect(parseCorsOrigin(undefined)).toEqual([]);
+  });
+
+  it("returns an empty allow-list when CORS_ORIGIN is blank", () => {
+    expect(parseCorsOrigin("   ")).toEqual([]);
+  });
+
+  it('returns "*" unchanged', () => {
+    expect(parseCorsOrigin("*")).toBe("*");
+  });
+
+  it("splits a single origin into a one-element list", () => {
+    expect(parseCorsOrigin("https://example.com")).toEqual(["https://example.com"]);
+  });
+
+  it("splits a comma separated list of origins, trimming whitespace", () => {
+    expect(parseCorsOrigin("https://a.example, https://b.example ,https://c.example")).toEqual([
+      "https://a.example",
+      "https://b.example",
+      "https://c.example"
+    ]);
+  });
+
+  it("throws for a value that is only commas", () => {
+    expect(() => parseCorsOrigin(",,,")).toThrow(/Invalid CORS_ORIGIN value/);
   });
 });

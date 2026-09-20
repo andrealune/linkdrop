@@ -61,6 +61,29 @@ Current schema:
   `{ "status": "error", "database": { "status": "error", "error": "<message>" } }`
   when `DATABASE_URL` is not set or the database connection/query fails.
 
+- `POST /api/links` — saves a new link. Body: `{ "url": "...", "title": "..." }`
+  (`title` optional — fetched from the page when omitted). Returns `201`
+  with the stored link (`id`, `url`, `title`, `tags`, `created_at`), or
+  `400` with `{ "error": "<message>" }` for an invalid/missing URL or an
+  over-length title.
+
+- `GET /api/links` — lists saved links newest-first (by `created_at`, with
+  `id` breaking ties), 50 per page, using keyset (cursor) pagination:
+  - `?tag=<tag>` — only return links tagged with `<tag>` (single tag only;
+    passing the parameter more than once is a `400`).
+  - `?cursor=<cursor>` — resume after the given cursor, as returned by a
+    previous call.
+  - Returns `200` with `{ "items": [...], "cursor": "<cursor>" | null }`.
+    `items` holds up to 50 links, newest-first. `cursor` is always present
+    for a consistent response shape: it's the opaque position of the last
+    item in `items`, to pass as `?cursor=` on the next call — even when
+    this happens to be the last page (the next call then just returns an
+    empty `items`). It's only `null` when `items` is empty (nothing to
+    resume from, e.g. no links match at all, or you've paged past the
+    end).
+  - Returns `400` with `{ "error": "<message>" }` for more than one `tag`,
+    a blank `tag`, or a `cursor` that isn't one this API returned.
+
 ## Server scripts (`server/`)
 
 - `npm run dev` — run the API with hot reload

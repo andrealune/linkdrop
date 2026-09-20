@@ -6,7 +6,14 @@ export {
   type FetchTitleOptions,
   type FetchLike
 } from "./title.js";
-export { insertLink, type InsertLinkInput, type LinkRecord, type QueryablePool } from "./repository.js";
+export {
+  insertLink,
+  findLinks,
+  type InsertLinkInput,
+  type FindLinksOptions,
+  type LinkRecord,
+  type QueryablePool
+} from "./repository.js";
 export {
   createLink,
   MAX_TITLE_LENGTH,
@@ -16,3 +23,13 @@ export {
   type CreateLinkSuccess,
   type CreateLinkFailure
 } from "./createLink.js";
+export {
+  listLinks,
+  LINKS_PAGE_SIZE,
+  type ListLinksInput,
+  type ListLinksDeps,
+  type ListLinksResult,
+  type ListLinksSuccess,
+  type ListLinksFailure
+} from "./listLinks.js";
+export { encodeCursor, decodeCursor, type LinkCursor, type DecodeCursorResult } from "./cursor.js";

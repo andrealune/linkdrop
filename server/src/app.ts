@@ -1,6 +1,6 @@
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import { checkHealth } from "./health.js";
-import { createLink, type LinkRecord } from "./links/index.js";
+import { createLink, listLinks, type LinkRecord } from "./links/index.js";
 
 /** Shapes a stored link row into the JSON the API returns (LAR-24). */
 function toLinkResponse(link: LinkRecord) {
@@ -25,6 +25,20 @@ export function createApp(): Express {
   app.get("/api/health", async (_req: Request, res: Response) => {
     const health = await checkHealth();
     res.status(health.status === "ok" ? 200 : 503).json(health);
+  });
+
+  app.get("/api/links", async (req: Request, res: Response) => {
+    const result = await listLinks({ tag: req.query.tag, cursor: req.query.cursor });
+
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error });
+      return;
+    }
+
+    res.status(200).json({
+      items: result.links.map(toLinkResponse),
+      cursor: result.cursor
+    });
   });
 
   app.post("/api/links", async (req: Request, res: Response) => {

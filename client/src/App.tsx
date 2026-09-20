@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { env } from './config/env'
 import { useApiHealth } from './hooks/useApiHealth'
 import { StatusBadge } from './components/StatusBadge'
+import { LinkList } from './components/LinkList'
 import { AddLinkForm } from './components/AddLinkForm'
 import type { Link } from './api/links'
 import './App.css'
@@ -18,7 +19,8 @@ function App() {
       </header>
 
       <p className="app__lede">
-        Save a link below. The full list, tag filtering and delete/undo flow land in later tasks.
+        Save a link below and browse your saved links. Tag filtering and delete/undo flow land in
+        later tasks.
       </p>
 
       <section className="app__section" aria-labelledby="add-link-heading">
@@ -40,6 +42,10 @@ function App() {
           </ul>
         </section>
       ) : null}
+
+      <section className="app__links" aria-label="Saved links">
+        <LinkList />
+      </section>
 
       <dl className="app__config">
         <div>

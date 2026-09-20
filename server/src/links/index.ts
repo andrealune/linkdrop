@@ -42,8 +42,14 @@ export {
   type DeleteLinkFailure
 } from "./deleteLink.js";
 export {
-  updateLinkTags,
+  normalizeTags,
   MAX_TAGS,
+  type NormalizeTagsResult,
+  type NormalizeTagsSuccess,
+  type NormalizeTagsFailure
+} from "./tags.js";
+export {
+  updateLinkTags,
   type UpdateLinkTagsInput,
   type UpdateLinkTagsDeps,
   type UpdateLinkTagsResult,

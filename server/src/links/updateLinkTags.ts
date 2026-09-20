@@ -6,16 +6,17 @@
  * (src/links/repository.ts), mirroring the deleteLink.ts / createLink.ts
  * pattern used elsewhere in this module. Authentication (the
  * LINKDROP_ADMIN_TOKEN check) happens earlier, in the `requireAdminToken`
- * middleware (src/auth.ts) — this module only validates and normalizes
+ * middleware (src/auth.ts) — this module only validates/normalizes
  * `id`/`tags` and decides whether a matching link exists to update.
+ *
+ * The actual tag normalization rules (lowercase, `a-z0-9-` only, at most
+ * `MAX_TAGS` entries) live in `./tags.js` (LAR-28), so they can be reused
+ * and unit tested independently of this HTTP-facing module.
  */
 import { updateLinkTags as replaceTagsById, type LinkRecord } from "./repository.js";
+import { normalizeTags, MAX_TAGS } from "./tags.js";
 
-/** A link may have at most this many tags (LAR-27). */
-export const MAX_TAGS = 5;
-
-/** Tags are stored lowercase and may only contain letters, digits and hyphens. */
-const TAG_PATTERN = /^[a-z0-9-]+$/;
+export { MAX_TAGS };
 
 export interface UpdateLinkTagsInput {
   tags?: unknown;
@@ -56,53 +57,6 @@ function isWellFormedId(id: string): boolean {
   return /^[1-9][0-9]*$/.test(id);
 }
 
-/**
- * Validates and normalizes the `tags` input.
- *
- * - Must be an array; anything else is rejected.
- * - Each entry must be a string; it is trimmed and lowercased, then
- *   checked against `TAG_PATTERN` (`a-z0-9-`, at least one character).
- * - Duplicate tags (after normalization) collapse to a single entry,
- *   since `tags` is a set of labels, not an ordered/counted list —
- *   mirroring the `tags @> ARRAY[...]` containment semantics already
- *   used for filtering (src/links/repository.ts).
- * - At most `MAX_TAGS` distinct tags are allowed.
- */
-function validateTags(rawTags: unknown): { ok: true; tags: string[] } | { ok: false; error: string } {
-  if (!Array.isArray(rawTags)) {
-    return { ok: false, error: "tags must be an array." };
-  }
-
-  const seen = new Set<string>();
-  const tags: string[] = [];
-
-  for (const rawTag of rawTags) {
-    if (typeof rawTag !== "string") {
-      return { ok: false, error: "Each tag must be a string." };
-    }
-
-    const normalized = rawTag.trim().toLowerCase();
-    if (normalized.length === 0) {
-      return { ok: false, error: "Tags must not be blank." };
-    }
-
-    if (!TAG_PATTERN.test(normalized)) {
-      return { ok: false, error: "Tags may only contain lowercase letters, numbers and hyphens." };
-    }
-
-    if (!seen.has(normalized)) {
-      seen.add(normalized);
-      tags.push(normalized);
-    }
-  }
-
-  if (tags.length > MAX_TAGS) {
-    return { ok: false, error: `A link may have at most ${MAX_TAGS} tags.` };
-  }
-
-  return { ok: true, tags };
-}
-
 export async function updateLinkTags(
   id: string,
   input: UpdateLinkTagsInput,
@@ -114,7 +68,7 @@ export async function updateLinkTags(
     return invalid("id must be a positive integer.");
   }
 
-  const tagsValidation = validateTags(input.tags);
+  const tagsValidation = normalizeTags(input.tags);
   if (!tagsValidation.ok) {
     return invalid(tagsValidation.error);
   }

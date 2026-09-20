@@ -49,3 +49,46 @@ export async function insertLink(
   );
   return result.rows[0];
 }
+
+export interface FindLinksOptions {
+  /** When set, only links tagged with this exact tag are returned. */
+  tag?: string;
+  /**
+   * When set, only links strictly "older" (in newest-first order) than
+   * this position are returned — i.e. the row after this one on a
+   * `created_at DESC, id DESC` listing. `null`/omitted starts from the
+   * very first page.
+   */
+  after?: { createdAt: Date; id: string } | null;
+  /** Maximum number of rows to return. */
+  limit: number;
+}
+
+/**
+ * Lists links newest-first (`created_at DESC`, with `id DESC` as a
+ * tie-breaker for rows sharing a `created_at`), optionally filtered by a
+ * single tag and/or resumed after a keyset cursor position (LAR-25).
+ *
+ * Uses a row-value comparison (`(created_at, id) < (...)`) rather than
+ * an OFFSET so pages remain stable and cheap (via `idx_links_created_at`)
+ * even as new links are inserted between requests.
+ */
+export async function findLinks(
+  options: FindLinksOptions,
+  pool: QueryablePool = getPool()
+): Promise<LinkRecord[]> {
+  const { tag, after, limit } = options;
+  const result = await pool.query<LinkRecord>(
+    `SELECT id, url, title, tags, created_at
+     FROM links
+     WHERE ($1::text IS NULL OR tags @> ARRAY[$1]::text[])
+       AND (
+         $2::timestamptz IS NULL
+         OR (created_at, id) < ($2::timestamptz, $3::bigint)
+       )
+     ORDER BY created_at DESC, id DESC
+     LIMIT $4`,
+    [tag ?? null, after ? after.createdAt.toISOString() : null, after ? after.id : null, limit]
+  );
+  return result.rows;
+}

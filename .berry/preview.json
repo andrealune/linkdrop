@@ -4,6 +4,7 @@
       "name": "api",
       "dir": "server",
       "build": "npm run build",
+      "migrate": "npm run migrate:up",
       "start": "npm start",
       "port": 3001,
       "primary": true,

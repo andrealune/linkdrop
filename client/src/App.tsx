@@ -1,6 +1,7 @@
 import { env } from './config/env'
 import { useApiHealth } from './hooks/useApiHealth'
 import { StatusBadge } from './components/StatusBadge'
+import { LinkList } from './components/LinkList'
 import './App.css'
 
 function App() {
@@ -14,9 +15,12 @@ function App() {
       </header>
 
       <p className="app__lede">
-        Project scaffolding is ready. The link list, add-link form and delete/undo flow land in
-        later tasks.
+        Saved links, newest first. The add-link form and delete/undo flow land in later tasks.
       </p>
+
+      <section className="app__links" aria-label="Saved links">
+        <LinkList />
+      </section>
 
       <dl className="app__config">
         <div>

@@ -21,6 +21,10 @@
   color: var(--text);
 }
 
+.app__links {
+  margin-top: 1.5rem;
+}
+
 .app__config {
   margin-top: 2rem;
   border-top: 1px solid var(--border);

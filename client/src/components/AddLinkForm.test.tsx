@@ -100,6 +100,41 @@ describe('AddLinkForm', () => {
     await waitFor(() => expect(screen.queryByText('Enter a URL.')).not.toBeInTheDocument())
   })
 
+  it('validates the URL on blur, before the form is ever submitted', async () => {
+    const user = userEvent.setup()
+    render(<AddLinkForm />)
+
+    await user.click(getUrlInput())
+    await user.tab()
+
+    expect(await screen.findByText('Enter a URL.')).toBeInTheDocument()
+    expect(mockedCreateLink).not.toHaveBeenCalled()
+  })
+
+  it('validates the title on blur once it exceeds the length limit', async () => {
+    const user = userEvent.setup()
+    render(<AddLinkForm />)
+
+    await user.type(getTitleInput(), 'a'.repeat(201))
+    await user.tab()
+
+    expect(await screen.findByText(/200 characters or fewer/)).toBeInTheDocument()
+  })
+
+  it('treats a whitespace-only title as blank and omits it from the request', async () => {
+    mockedCreateLink.mockResolvedValue(sampleLink)
+    const user = userEvent.setup()
+    render(<AddLinkForm />)
+
+    await user.type(getUrlInput(), 'https://example.com')
+    await user.type(getTitleInput(), '   ')
+    await user.click(getSubmitButton())
+
+    await waitFor(() =>
+      expect(mockedCreateLink).toHaveBeenCalledWith({ url: 'https://example.com' }),
+    )
+  })
+
   it('submits the trimmed URL and title, then clears the form on success', async () => {
     mockedCreateLink.mockResolvedValue(sampleLink)
     const onLinkAdded = vi.fn()

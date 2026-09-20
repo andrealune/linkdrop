@@ -10,6 +10,7 @@ export {
   insertLink,
   findLinks,
   deleteLinkById,
+  updateLinkTags as replaceLinkTags,
   type InsertLinkInput,
   type FindLinksOptions,
   type LinkRecord,
@@ -40,4 +41,19 @@ export {
   type DeleteLinkSuccess,
   type DeleteLinkFailure
 } from "./deleteLink.js";
+export {
+  normalizeTags,
+  MAX_TAGS,
+  type NormalizeTagsResult,
+  type NormalizeTagsSuccess,
+  type NormalizeTagsFailure
+} from "./tags.js";
+export {
+  updateLinkTags,
+  type UpdateLinkTagsInput,
+  type UpdateLinkTagsDeps,
+  type UpdateLinkTagsResult,
+  type UpdateLinkTagsSuccess,
+  type UpdateLinkTagsFailure
+} from "./updateLinkTags.js";
 export { encodeCursor, decodeCursor, type LinkCursor, type DecodeCursorResult } from "./cursor.js";

@@ -3,7 +3,7 @@ import express, { type Express, type NextFunction, type Request, type Response }
 import { env, type CorsOrigin } from "./env.js";
 import { requireAdminToken } from "./auth.js";
 import { checkHealth } from "./health.js";
-import { createLink, deleteLink, listLinks, type LinkRecord } from "./links/index.js";
+import { createLink, deleteLink, listLinks, updateLinkTags, type LinkRecord } from "./links/index.js";
 
 /** Shapes a stored link row into the JSON the API returns (LAR-24). */
 function toLinkResponse(link: LinkRecord) {
@@ -85,6 +85,24 @@ export function createApp(corsOrigin: CorsOrigin = env.CORS_ORIGIN): Express {
     }
 
     res.status(204).send();
+  });
+
+  // Replaces a link's tags (LAR-27). Requires a valid admin bearer token —
+  // requireAdminToken() responds 401 and short-circuits before this
+  // handler runs when the Authorization header is missing or wrong.
+  // Tags are normalized (trimmed, lowercased) and validated (max 5,
+  // `a-z0-9-` only) by updateLinkTags(); this handler just wires the
+  // request/response.
+  app.post("/api/links/:id/tags", requireAdminToken(), async (req: Request, res: Response) => {
+    const body = typeof req.body === "object" && req.body !== null ? req.body : {};
+    const result = await updateLinkTags(req.params.id, body);
+
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error });
+      return;
+    }
+
+    res.status(200).json(toLinkResponse(result.link));
   });
 
   // Handles malformed JSON bodies raised by express.json() (which throws a

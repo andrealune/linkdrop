@@ -31,7 +31,7 @@
     "supertest": "^7.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.5.4",
-    "vitest": "^3.2.4"
+    "vitest": "^5.0.1"
   },
   "type": "module"
 }

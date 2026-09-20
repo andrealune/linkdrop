@@ -12,6 +12,7 @@
  * every request would be rejected regardless of what the client sends,
  * so there is no "auth disabled" fallback to worry about.
  */
+import { timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import { env } from "./env.js";
 
@@ -28,6 +29,28 @@ export function extractBearerToken(header: string | undefined): string | null {
 }
 
 /**
+ * Constant-time string comparison (LAR-39). `token !== expected` short
+ * circuits on the first differing byte, which leaks how many leading
+ * characters of the guess were correct through response timing. The
+ * token gates destructive/admin endpoints that may be reachable over the
+ * network (CORS_ORIGIN can be "*"), so we compare digests of equal
+ * length with `crypto.timingSafeEqual` instead of the raw strings —
+ * `timingSafeEqual` itself throws if the buffers differ in length, so
+ * that check happens first (and is *not* timing sensitive: it only
+ * reveals the length of the correct token, not any of its content).
+ */
+function safeCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, "utf8");
+  const bufB = Buffer.from(b, "utf8");
+
+  if (bufA.length !== bufB.length) {
+    return false;
+  }
+
+  return timingSafeEqual(bufA, bufB);
+}
+
+/**
  * Express middleware enforcing the admin token. Injectable `currentEnv`
  * mirrors the pattern used by `checkHealth` (src/health.ts) so this can
  * be unit tested without mutating `process.env`.
@@ -37,8 +60,9 @@ export function requireAdminToken(
 ): (req: Request, res: Response, next: NextFunction) => void {
   return (req: Request, res: Response, next: NextFunction) => {
     const token = extractBearerToken(req.header("authorization"));
+    const expected = currentEnv.LINKDROP_ADMIN_TOKEN;
 
-    if (!currentEnv.LINKDROP_ADMIN_TOKEN || !token || token !== currentEnv.LINKDROP_ADMIN_TOKEN) {
+    if (!expected || !token || !safeCompare(token, expected)) {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }

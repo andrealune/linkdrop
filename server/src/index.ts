@@ -1,5 +1,8 @@
 import { createApp } from "./app.js";
-import { env } from "./env.js";
+import { assertAdminTokenPresent, env } from "./env.js";
+
+// Exit before binding to a port if required configuration is missing.
+assertAdminTokenPresent();
 
 const app = createApp();
 

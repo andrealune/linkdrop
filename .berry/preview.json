@@ -1,0 +1,28 @@
+{
+  "apps": [
+    {
+      "name": "api",
+      "dir": "server",
+      "build": "npm run build",
+      "start": "npm start",
+      "port": 3001,
+      "primary": true,
+      "env": {
+        "DATABASE_URL": "postgres://postgres:preview@${services.db.host}:5432/app",
+        "PORT": "3001",
+        "LINKDROP_ADMIN_TOKEN": "preview-admin-token"
+      }
+    }
+  ],
+  "services": [
+    {
+      "name": "db",
+      "image": "postgres:16-alpine",
+      "port": 5432,
+      "env": {
+        "POSTGRES_PASSWORD": "preview",
+        "POSTGRES_DB": "app"
+      }
+    }
+  ]
+}

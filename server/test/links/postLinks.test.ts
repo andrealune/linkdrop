@@ -1,5 +1,7 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 import request from "supertest";
+import { Pool } from "pg";
+import { createServer, type Server } from "node:http";
 import { createApp } from "../../src/app.js";
 import { closePool } from "../../src/db/pool.js";
 import { MAX_TITLE_LENGTH } from "../../src/links/createLink.js";
@@ -61,15 +63,33 @@ describe("POST /api/links validation", () => {
 
 /**
  * Full round trip through the real database, mirroring the
- * "with DATABASE_URL" half of test/health.test.ts. A title is always
- * supplied here so the test doesn't depend on outbound network access;
- * fetchPageTitle itself is covered separately in test/links/title.test.ts
- * and its use from createLink() in test/links/createLink.test.ts.
+ * "with DATABASE_URL" half of test/health.test.ts. Most cases here
+ * supply a title explicitly so they don't depend on outbound network
+ * access; fetchPageTitle itself is covered separately in
+ * test/links/title.test.ts and its use from createLink() in
+ * test/links/createLink.test.ts (both with an injected fetch double).
+ *
+ * The "fetches the page title" case below instead exercises the real,
+ * un-mocked title-fetch path end to end — HTTP route -> createLink() ->
+ * the default fetchPageTitle() -> a real (loopback) HTTP request -> the
+ * database — against a throwaway local HTTP server, so it stays fast and
+ * deterministic without reaching the public internet.
+ *
+ * `afterEach` clears the table (mirroring test/links/getLinks.test.ts and
+ * friends) so rows created here don't leak into other test files when the
+ * whole suite runs together against one database.
  */
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 
 describe.runIf(hasDatabase)("POST /api/links (with DATABASE_URL)", () => {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+  afterEach(async () => {
+    await pool.query("DELETE FROM links");
+  });
+
   afterAll(async () => {
+    await pool.end();
     await closePool();
   });
 
@@ -87,5 +107,30 @@ describe.runIf(hasDatabase)("POST /api/links (with DATABASE_URL)", () => {
     });
     expect(res.body.id).toBeDefined();
     expect(res.body.created_at).toBeDefined();
+  });
+
+  it("fetches the page title from the URL when none is supplied, and stores it", async () => {
+    let server: Server | undefined;
+    try {
+      server = createServer((_req, res) => {
+        res.writeHead(200, { "Content-Type": "text/html" });
+        res.end("<html><head><title>Local Test Page</title></head><body></body></html>");
+      });
+      await new Promise<void>((resolve) => server!.listen(0, "127.0.0.1", resolve));
+      const address = server.address();
+      if (address === null || typeof address === "string") {
+        throw new Error("Expected the test server to bind to a port.");
+      }
+      const url = `http://127.0.0.1:${address.port}/`;
+
+      const app = createApp();
+      const res = await request(app).post("/api/links").send({ url });
+
+      expect(res.status).toBe(201);
+      expect(res.body.title).toBe("Local Test Page");
+      expect(res.body.url).toBe(url);
+    } finally {
+      await new Promise<void>((resolve) => (server ? server.close(() => resolve()) : resolve()));
+    }
   });
 });

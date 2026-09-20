@@ -1,15 +1,29 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { env } from './config/env'
 import { useApiHealth } from './hooks/useApiHealth'
 import { StatusBadge } from './components/StatusBadge'
 import { LinkList } from './components/LinkList'
 import { AddLinkForm } from './components/AddLinkForm'
+import { TagFilter } from './components/TagFilter'
 import type { Link } from './api/links'
 import './App.css'
 
 function App() {
   const apiStatus = useApiHealth()
   const [recentlyAdded, setRecentlyAdded] = useState<Link[]>([])
+  const [selectedTag, setSelectedTag] = useState<string | undefined>(undefined)
+  const [visibleTags, setVisibleTags] = useState<string[]>([])
+
+  // Tags on offer in the filter track whatever's actually on screen right
+  // now (the current page of the current filter), so they stay in sync
+  // with pagination and with the filter itself.
+  const handleItemsChange = useCallback((items: Link[]) => {
+    const unique = new Set<string>()
+    for (const item of items) {
+      for (const tag of item.tags) unique.add(tag)
+    }
+    setVisibleTags(Array.from(unique).sort())
+  }, [])
 
   return (
     <main className="app">
@@ -19,8 +33,8 @@ function App() {
       </header>
 
       <p className="app__lede">
-        Save a link below and browse your saved links. Tag filtering and delete/undo flow land in
-        later tasks.
+        Save a link below, then browse and filter your saved links by tag. Delete/undo flow
+        lands in a later task.
       </p>
 
       <section className="app__section" aria-labelledby="add-link-heading">
@@ -43,8 +57,13 @@ function App() {
         </section>
       ) : null}
 
+      <section className="app__section app__filter" aria-labelledby="filter-heading">
+        <h2 id="filter-heading">Filter by tag</h2>
+        <TagFilter tags={visibleTags} selectedTag={selectedTag} onSelectTag={setSelectedTag} />
+      </section>
+
       <section className="app__links" aria-label="Saved links">
-        <LinkList />
+        <LinkList tag={selectedTag} onItemsChange={handleItemsChange} />
       </section>
 
       <dl className="app__config">

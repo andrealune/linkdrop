@@ -143,4 +143,31 @@ describe('LinkList', () => {
     await screen.findByRole('link', { name: 'Example Article' })
     expect(listLinks).toHaveBeenCalledWith({ tag: 'news', cursor: undefined })
   })
+
+  it('calls onItemsChange with the items on the current page once they load', async () => {
+    const link = makeLink()
+    vi.mocked(listLinks).mockResolvedValue(page([link]))
+    const onItemsChange = vi.fn()
+
+    render(<LinkList onItemsChange={onItemsChange} />)
+
+    await waitFor(() => expect(onItemsChange).toHaveBeenCalledWith([link]))
+  })
+
+  it('calls onItemsChange again with the new page after paginating', async () => {
+    const firstLink = makeLink({ id: '1', title: 'First Link' })
+    const secondLink = makeLink({ id: '2', title: 'Second Link' })
+    vi.mocked(listLinks)
+      .mockResolvedValueOnce(page([firstLink], 'cursor-2'))
+      .mockResolvedValueOnce(page([secondLink], null))
+    const onItemsChange = vi.fn()
+
+    render(<LinkList onItemsChange={onItemsChange} />)
+
+    await waitFor(() => expect(onItemsChange).toHaveBeenCalledWith([firstLink]))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+
+    await waitFor(() => expect(onItemsChange).toHaveBeenLastCalledWith([secondLink]))
+  })
 })

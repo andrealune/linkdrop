@@ -92,6 +92,29 @@ describe("requireAdminToken", () => {
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
+  it("responds 401 when the supplied token is a different length than the configured one", () => {
+    const req = mockReq("Bearer correct-tok");
+    const res = mockRes();
+    const next = vi.fn();
+
+    requireAdminToken(currentEnv)(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: "Unauthorized" });
+  });
+
+  it("responds 401 when the supplied token is longer than the configured one", () => {
+    const req = mockReq("Bearer correct-tokenextra");
+    const res = mockRes();
+    const next = vi.fn();
+
+    requireAdminToken(currentEnv)(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(401);
+  });
+
   it("responds 401 when LINKDROP_ADMIN_TOKEN is not configured, even with a token supplied", () => {
     const req = mockReq("Bearer anything");
     const res = mockRes();

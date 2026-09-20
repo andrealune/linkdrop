@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useLinks } from '../hooks/useLinks'
 import { TagList } from './TagList'
+import type { Link } from '../api/links'
 import './LinkList.css'
 
 export interface LinkListProps {
   /** Only show links tagged with this value. When it changes, pagination resets to page 1. */
   tag?: string
+  /**
+   * Called whenever the page of links on screen changes (a new page loads
+   * successfully, including the first one). Receives exactly the items
+   * being rendered — useful for deriving "tags seen on the current page"
+   * for a tag filter without this component needing to know about one.
+   */
+  onItemsChange?: (items: Link[]) => void
 }
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -37,7 +45,7 @@ function hostnameOf(url: string): string {
  * component keeps its own stack of the cursors it has visited in order to
  * step backwards without re-requesting anything already seen.
  */
-export function LinkList({ tag }: LinkListProps) {
+export function LinkList({ tag, onItemsChange }: LinkListProps) {
   // cursorStack[0] is always `undefined` (the first page). The last entry
   // is the cursor for the page currently on screen.
   const [cursorStack, setCursorStack] = useState<Array<string | undefined>>([undefined])
@@ -49,6 +57,14 @@ export function LinkList({ tag }: LinkListProps) {
   useEffect(() => {
     setCursorStack([undefined])
   }, [tag])
+
+  // Let callers (e.g. a tag filter) know what's actually on screen whenever
+  // a page finishes loading successfully.
+  useEffect(() => {
+    if (data) {
+      onItemsChange?.(data.items)
+    }
+  }, [data, onItemsChange])
 
   const page = cursorStack.length
   const hasPrevious = cursorStack.length > 1

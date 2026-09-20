@@ -99,6 +99,23 @@ Current schema:
   - Returns `404` with `{ "error": "Link not found." }` when no link
     with that id exists.
 
+- `POST /api/links/:id/tags` — replaces a link's tags (LAR-27). Body:
+  `{ "tags": ["..."] }`. Requires
+  `Authorization: Bearer <LINKDROP_ADMIN_TOKEN>`:
+  - Tags are normalized (trimmed, lowercased) before validation and
+    storage; duplicates that normalize to the same value collapse to one.
+  - Returns `200` with the updated link (`id`, `url`, `title`, `tags`,
+    `created_at`).
+  - Returns `401` with `{ "error": "Unauthorized" }` when the
+    `Authorization` header is missing, malformed, or doesn't match
+    `LINKDROP_ADMIN_TOKEN`.
+  - Returns `400` with `{ "error": "<message>" }` when `:id` isn't a
+    positive integer, `tags` isn't an array, a tag isn't a string or is
+    blank, a tag contains characters other than lowercase letters, digits
+    or hyphens (`a-z0-9-`), or there are more than 5 distinct tags.
+  - Returns `404` with `{ "error": "Link not found." }` when no link
+    with that id exists.
+
 ## Server scripts (`server/`)
 
 - `npm run dev` — run the API with hot reload

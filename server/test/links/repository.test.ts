@@ -1,6 +1,6 @@
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { Pool } from "pg";
-import { deleteLinkById, findLinks, insertLink } from "../../src/links/repository.js";
+import { deleteLinkById, findLinks, insertLink, updateLinkTags } from "../../src/links/repository.js";
 import { closePool } from "../../src/db/pool.js";
 import { migrateUp } from "../../src/db/migrate.js";
 
@@ -166,5 +166,55 @@ describe.runIf(hasDatabase)("deleteLinkById", () => {
 
     const remaining = await findLinks({ limit: 50 }, pool);
     expect(remaining.map((l) => l.id)).toEqual([keep.id]);
+  });
+});
+
+describe.runIf(hasDatabase)("updateLinkTags", () => {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+  afterEach(async () => {
+    await pool.query("DELETE FROM links");
+  });
+
+  afterAll(async () => {
+    await pool.end();
+    await closePool();
+  });
+
+  it("replaces the tags and returns the updated row", async () => {
+    await migrateUp();
+    const link = await insertLink({ url: "https://example.com/", title: "Example" }, pool);
+
+    const updated = await updateLinkTags(link.id, ["news", "to-read"], pool);
+
+    expect(updated).not.toBeNull();
+    expect(updated?.tags).toEqual(["news", "to-read"]);
+    expect(updated?.id).toBe(link.id);
+  });
+
+  it("can clear all tags with an empty array", async () => {
+    const link = await insertLink({ url: "https://example.com/", title: "Example" }, pool);
+    await updateLinkTags(link.id, ["news"], pool);
+
+    const updated = await updateLinkTags(link.id, [], pool);
+
+    expect(updated?.tags).toEqual([]);
+  });
+
+  it("returns null when no link with that id exists", async () => {
+    const updated = await updateLinkTags("999999", ["news"], pool);
+
+    expect(updated).toBeNull();
+  });
+
+  it("does not affect other links", async () => {
+    const keep = await insertLink({ url: "https://example.com/keep", title: "Keep" }, pool);
+    const update = await insertLink({ url: "https://example.com/update", title: "Update" }, pool);
+
+    await updateLinkTags(update.id, ["news"], pool);
+
+    const remaining = await findLinks({ limit: 50 }, pool);
+    const keepRow = remaining.find((l) => l.id === keep.id);
+    expect(keepRow?.tags).toEqual([]);
   });
 });

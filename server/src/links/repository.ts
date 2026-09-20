@@ -101,3 +101,22 @@ export async function deleteLinkById(id: string, pool: QueryablePool = getPool()
   const result = await pool.query("DELETE FROM links WHERE id = $1::bigint", [id]);
   return result.rowCount !== null && result.rowCount > 0;
 }
+
+/**
+ * Replaces the tag set of the link with the given id (LAR-27). `tags` is
+ * expected to already be validated/normalized (see
+ * src/links/updateLinkTags.ts) — this function just persists it. Returns
+ * the updated row, or `null` when no link with that id existed.
+ */
+export async function updateLinkTags(
+  id: string,
+  tags: string[],
+  pool: QueryablePool = getPool()
+): Promise<LinkRecord | null> {
+  const result = await pool.query<LinkRecord>(
+    `UPDATE links SET tags = $2::text[] WHERE id = $1::bigint
+     RETURNING id, url, title, tags, created_at`,
+    [id, tags]
+  );
+  return result.rows[0] ?? null;
+}

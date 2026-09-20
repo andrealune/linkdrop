@@ -1,4 +1,5 @@
 import express, { type Express, type Request, type Response } from "express";
+import { checkHealth } from "./health.js";
 
 /**
  * Builds the Express application. Kept separate from src/index.ts so
@@ -9,8 +10,9 @@ export function createApp(): Express {
 
   app.use(express.json());
 
-  app.get("/api/health", (_req: Request, res: Response) => {
-    res.json({ status: "ok" });
+  app.get("/api/health", async (_req: Request, res: Response) => {
+    const health = await checkHealth();
+    res.status(health.status === "ok" ? 200 : 503).json(health);
   });
 
   return app;

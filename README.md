@@ -53,6 +53,14 @@ Current schema:
   `created_at` (timestamptz, defaults to now). Indexed on `created_at`
   (recent-first listing) and on `tags` with a GIN index (tag filtering).
 
+## API
+
+- `GET /api/health` — health check. Returns `200` with
+  `{ "status": "ok", "database": { "status": "ok" } }` when the server is
+  up and it can reach PostgreSQL. Returns `503` with
+  `{ "status": "error", "database": { "status": "error", "error": "<message>" } }`
+  when `DATABASE_URL` is not set or the database connection/query fails.
+
 ## Server scripts (`server/`)
 
 - `npm run dev` — run the API with hot reload

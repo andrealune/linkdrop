@@ -1,6 +1,19 @@
 {
   "apps": [
     {
+      "name": "api",
+      "dir": "server",
+      "build": "npm run build",
+      "migrate": "npm run migrate:up",
+      "start": "npm start",
+      "port": 3001,
+      "env": {
+        "DATABASE_URL": "postgres://postgres:preview@${services.db.host}:5432/app",
+        "PORT": "3001",
+        "LINKDROP_ADMIN_TOKEN": "preview-admin-token"
+      }
+    },
+    {
       "name": "web",
       "dir": "client",
       "build": "npm run build",
@@ -8,7 +21,18 @@
       "port": 4173,
       "primary": true,
       "env": {
-        "VITE_API_URL": "http://localhost:3001"
+        "VITE_API_URL": "${apps.api.url}"
+      }
+    }
+  ],
+  "services": [
+    {
+      "name": "db",
+      "image": "postgres:16-alpine",
+      "port": 5432,
+      "env": {
+        "POSTGRES_PASSWORD": "preview",
+        "POSTGRES_DB": "app"
       }
     }
   ]

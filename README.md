@@ -31,6 +31,10 @@ Environment variables (see `.env.example`):
 - `PORT` — port the API server listens on
 - `LINKDROP_ADMIN_TOKEN` — admin token required for destructive/tag-editing
   endpoints (sent as `Authorization: Bearer <token>`)
+- `CORS_ORIGIN` — origins the API's CORS middleware allows to call it. `*`
+  allows any origin; otherwise a comma separated list of allowed origins
+  (e.g. `https://example.com,https://other.example.com`). If unset, no
+  cross-origin requests are allowed.
 - `VITE_API_URL` — base URL the web client uses to reach the API
 
 The server exits immediately with a descriptive error message if any of

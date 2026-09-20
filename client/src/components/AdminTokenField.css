@@ -1,0 +1,33 @@
+.admin-token-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: 28rem;
+}
+
+.admin-token-field label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.admin-token-field input {
+  font: inherit;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.55em 0.7em;
+}
+
+.admin-token-field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.admin-token-field__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text);
+  opacity: 0.75;
+}

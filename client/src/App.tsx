@@ -1,10 +1,12 @@
 import { useCallback, useState } from 'react'
 import { env } from './config/env'
 import { useApiHealth } from './hooks/useApiHealth'
+import { useAdminToken } from './hooks/useAdminToken'
 import { StatusBadge } from './components/StatusBadge'
 import { LinkList } from './components/LinkList'
 import { AddLinkForm } from './components/AddLinkForm'
 import { TagFilter } from './components/TagFilter'
+import { AdminTokenField } from './components/AdminTokenField'
 import type { Link } from './api/links'
 import './App.css'
 
@@ -13,6 +15,7 @@ function App() {
   const [recentlyAdded, setRecentlyAdded] = useState<Link[]>([])
   const [selectedTag, setSelectedTag] = useState<string | undefined>(undefined)
   const [visibleTags, setVisibleTags] = useState<string[]>([])
+  const [adminToken, setAdminToken] = useAdminToken()
 
   // Tags on offer in the filter track whatever's actually on screen right
   // now (the current page of the current filter), so they stay in sync
@@ -33,8 +36,8 @@ function App() {
       </header>
 
       <p className="app__lede">
-        Save a link below, then browse and filter your saved links by tag. Delete/undo flow
-        lands in a later task.
+        Save a link below, then browse and filter your saved links by tag. Deleting a link
+        shows an undo toast for 5 seconds before the deletion is confirmed.
       </p>
 
       <section className="app__section" aria-labelledby="add-link-heading">
@@ -57,13 +60,18 @@ function App() {
         </section>
       ) : null}
 
+      <section className="app__section" aria-labelledby="admin-token-heading">
+        <h2 id="admin-token-heading">Admin access</h2>
+        <AdminTokenField value={adminToken} onChange={setAdminToken} />
+      </section>
+
       <section className="app__section app__filter" aria-labelledby="filter-heading">
         <h2 id="filter-heading">Filter by tag</h2>
         <TagFilter tags={visibleTags} selectedTag={selectedTag} onSelectTag={setSelectedTag} />
       </section>
 
       <section className="app__links" aria-label="Saved links">
-        <LinkList tag={selectedTag} onItemsChange={handleItemsChange} />
+        <LinkList tag={selectedTag} onItemsChange={handleItemsChange} adminToken={adminToken} />
       </section>
 
       <dl className="app__config">

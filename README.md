@@ -88,6 +88,17 @@ Current schema:
   - Returns `400` with `{ "error": "<message>" }` for more than one `tag`,
     a blank `tag`, or a `cursor` that isn't one this API returned.
 
+- `DELETE /api/links/:id` — deletes a link by id (LAR-26). Requires
+  `Authorization: Bearer <LINKDROP_ADMIN_TOKEN>`:
+  - Returns `204` with no body when the link is deleted.
+  - Returns `401` with `{ "error": "Unauthorized" }` when the
+    `Authorization` header is missing, malformed, or doesn't match
+    `LINKDROP_ADMIN_TOKEN`.
+  - Returns `400` with `{ "error": "id must be a positive integer." }`
+    when `:id` isn't a positive integer.
+  - Returns `404` with `{ "error": "Link not found." }` when no link
+    with that id exists.
+
 ## Server scripts (`server/`)
 
 - `npm run dev` — run the API with hot reload

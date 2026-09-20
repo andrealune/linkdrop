@@ -92,3 +92,12 @@ export async function findLinks(
   );
   return result.rows;
 }
+
+/**
+ * Deletes the link with the given id (LAR-26). Returns `true` when a row
+ * was deleted, `false` when no link with that id existed.
+ */
+export async function deleteLinkById(id: string, pool: QueryablePool = getPool()): Promise<boolean> {
+  const result = await pool.query("DELETE FROM links WHERE id = $1::bigint", [id]);
+  return result.rowCount !== null && result.rowCount > 0;
+}

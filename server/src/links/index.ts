@@ -9,6 +9,7 @@ export {
 export {
   insertLink,
   findLinks,
+  deleteLinkById,
   type InsertLinkInput,
   type FindLinksOptions,
   type LinkRecord,
@@ -32,4 +33,11 @@ export {
   type ListLinksSuccess,
   type ListLinksFailure
 } from "./listLinks.js";
+export {
+  deleteLink,
+  type DeleteLinkDeps,
+  type DeleteLinkResult,
+  type DeleteLinkSuccess,
+  type DeleteLinkFailure
+} from "./deleteLink.js";
 export { encodeCursor, decodeCursor, type LinkCursor, type DecodeCursorResult } from "./cursor.js";

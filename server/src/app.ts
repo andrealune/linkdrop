@@ -1,8 +1,9 @@
 import cors from "cors";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import { env, type CorsOrigin } from "./env.js";
+import { requireAdminToken } from "./auth.js";
 import { checkHealth } from "./health.js";
-import { createLink, listLinks, type LinkRecord } from "./links/index.js";
+import { createLink, deleteLink, listLinks, type LinkRecord } from "./links/index.js";
 
 /** Shapes a stored link row into the JSON the API returns (LAR-24). */
 function toLinkResponse(link: LinkRecord) {
@@ -70,6 +71,20 @@ export function createApp(corsOrigin: CorsOrigin = env.CORS_ORIGIN): Express {
     }
 
     res.status(201).json(toLinkResponse(result.link));
+  });
+
+  // Deletes a link by id (LAR-26). Requires a valid admin bearer token —
+  // requireAdminToken() responds 401 and short-circuits before this
+  // handler runs when the Authorization header is missing or wrong.
+  app.delete("/api/links/:id", requireAdminToken(), async (req: Request, res: Response) => {
+    const result = await deleteLink(req.params.id);
+
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error });
+      return;
+    }
+
+    res.status(204).send();
   });
 
   // Handles malformed JSON bodies raised by express.json() (which throws a

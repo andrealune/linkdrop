@@ -1,6 +1,6 @@
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { Pool } from "pg";
-import { findLinks, insertLink } from "../../src/links/repository.js";
+import { deleteLinkById, findLinks, insertLink } from "../../src/links/repository.js";
 import { closePool } from "../../src/db/pool.js";
 import { migrateUp } from "../../src/db/migrate.js";
 
@@ -126,5 +126,45 @@ describe.runIf(hasDatabase)("findLinks", () => {
     const links = await findLinks({ limit: 50 }, pool);
 
     expect(links).toEqual([]);
+  });
+});
+
+describe.runIf(hasDatabase)("deleteLinkById", () => {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+  afterEach(async () => {
+    await pool.query("DELETE FROM links");
+  });
+
+  afterAll(async () => {
+    await pool.end();
+    await closePool();
+  });
+
+  it("deletes the link and returns true", async () => {
+    await migrateUp();
+    const link = await insertLink({ url: "https://example.com/", title: "Example" }, pool);
+
+    const deleted = await deleteLinkById(link.id, pool);
+
+    expect(deleted).toBe(true);
+    const remaining = await findLinks({ limit: 50 }, pool);
+    expect(remaining).toEqual([]);
+  });
+
+  it("returns false when no link with that id exists", async () => {
+    const deleted = await deleteLinkById("999999", pool);
+
+    expect(deleted).toBe(false);
+  });
+
+  it("does not affect other links", async () => {
+    const keep = await insertLink({ url: "https://example.com/keep", title: "Keep" }, pool);
+    const remove = await insertLink({ url: "https://example.com/remove", title: "Remove" }, pool);
+
+    await deleteLinkById(remove.id, pool);
+
+    const remaining = await findLinks({ limit: 50 }, pool);
+    expect(remaining.map((l) => l.id)).toEqual([keep.id]);
   });
 });

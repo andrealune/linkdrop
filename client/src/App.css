@@ -1,0 +1,46 @@
+.app {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.app__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.app__header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.app__lede {
+  margin-top: 1rem;
+  color: var(--text);
+}
+
+.app__config {
+  margin-top: 2rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.app__config dt {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+.app__config dd {
+  margin: 0.25rem 0 0;
+}
+
+.app__config code {
+  background: var(--code-bg);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}

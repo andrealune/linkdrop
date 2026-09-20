@@ -4,13 +4,24 @@
       "name": "api",
       "dir": "server",
       "build": "npm run build",
+      "migrate": "npm run migrate:up",
       "start": "npm start",
       "port": 3001,
-      "primary": true,
       "env": {
         "DATABASE_URL": "postgres://postgres:preview@${services.db.host}:5432/app",
         "PORT": "3001",
         "LINKDROP_ADMIN_TOKEN": "preview-admin-token"
+      }
+    },
+    {
+      "name": "web",
+      "dir": "client",
+      "build": "npm run build",
+      "start": "npm run preview -- --host 0.0.0.0 --port 4173",
+      "port": 4173,
+      "primary": true,
+      "env": {
+        "VITE_API_URL": "${apps.api.url}"
       }
     }
   ],

@@ -8,6 +8,16 @@ import { closePool } from "../src/db/pool.js";
  * PostgreSQL instance (see README's "npm test" note). It verifies the
  * migration runner creates schema_migrations and the links table, and
  * that re-running it is a no-op (idempotent).
+ *
+ * Migration 0001 is actually applied by test/globalSetup.ts, once,
+ * before any test file (including this one) runs — see LAR-41. So the
+ * call to migrateUp() below normally finds it already applied and
+ * reports it as `skipped` rather than `applied`; either way it must end
+ * up recorded, which is what this asserts. Asserting `applied`
+ * specifically here raced against other test files' own defensive
+ * `migrateUp()` calls under Vitest's default parallel file execution:
+ * whichever file's call reached the database first "won" and applied
+ * it, so this test failed intermittently whenever it wasn't the winner.
  */
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 
@@ -17,8 +27,8 @@ describe.runIf(hasDatabase)("migrateUp", () => {
   });
 
   it("creates schema_migrations and applies 0001_create_links_table.sql", async () => {
-    const first = await migrateUp();
-    expect(first.applied).toContain("0001_create_links_table.sql");
+    const result = await migrateUp();
+    expect([...result.applied, ...result.skipped]).toContain("0001_create_links_table.sql");
 
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     try {

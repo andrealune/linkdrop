@@ -1,5 +1,6 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 import request from "supertest";
+import { Pool } from "pg";
 import { createApp } from "../../src/app.js";
 import { closePool } from "../../src/db/pool.js";
 import { MAX_TITLE_LENGTH } from "../../src/links/createLink.js";
@@ -69,7 +70,24 @@ describe("POST /api/links validation", () => {
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 
 describe.runIf(hasDatabase)("POST /api/links (with DATABASE_URL)", () => {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+  // This describe block used to insert a row through the real endpoint
+  // without ever deleting it, unlike every other real-database describe
+  // in this suite (test/links/getLinks.test.ts,
+  // test/links/deleteLinks.test.ts, test/links/postLinksTags.test.ts,
+  // test/links/repository.test.ts all clean up in `afterEach`). The
+  // leftover "https://example.com/page" row then polluted any later run
+  // — in the same `npm test` invocation or a later one against a
+  // long-lived database — that assumed the `links` table started empty
+  // (observed failing test/links/getLinks.test.ts's "returns ... an
+  // empty items array" case while reproducing LAR-41).
+  afterEach(async () => {
+    await pool.query("DELETE FROM links");
+  });
+
   afterAll(async () => {
+    await pool.end();
     await closePool();
   });
 

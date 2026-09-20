@@ -255,6 +255,66 @@ describe('LinkList', () => {
       expect(screen.queryByRole('link', { name: 'Example Article' })).not.toBeInTheDocument()
     })
 
+    it('ticks the countdown displayed in the undo toast down as time passes', async () => {
+      vi.mocked(listLinks).mockResolvedValue(page([makeLink()]))
+      vi.useFakeTimers()
+
+      render(<LinkList adminToken="secret-token" />)
+
+      await vi.waitFor(() =>
+        expect(screen.getByRole('link', { name: 'Example Article' })).toBeInTheDocument(),
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Example Article' }))
+      expect(screen.getByText('5s')).toBeInTheDocument()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1200)
+      })
+
+      expect(screen.getByText('4s')).toBeInTheDocument()
+      expect(screen.queryByText('5s')).not.toBeInTheDocument()
+    })
+
+    it('tracks multiple pending deletions independently: undoing one leaves the other to commit', async () => {
+      const first = makeLink({ id: '1', title: 'First Article' })
+      const second = makeLink({ id: '2', title: 'Second Article' })
+      vi.mocked(listLinks).mockResolvedValue(page([first, second]))
+      vi.mocked(deleteLink).mockResolvedValue(undefined)
+      vi.useFakeTimers()
+
+      render(<LinkList adminToken="secret-token" />)
+
+      await vi.waitFor(() =>
+        expect(screen.getByRole('link', { name: 'First Article' })).toBeInTheDocument(),
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete First Article' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Second Article' }))
+
+      expect(screen.getByText('Deleted "First Article".')).toBeInTheDocument()
+      expect(screen.getByText('Deleted "Second Article".')).toBeInTheDocument()
+      expect(screen.getAllByRole('button', { name: 'Undo' })).toHaveLength(2)
+
+      // Undo only the first — the second must stay pending and still commit.
+      const undoButtons = screen.getAllByRole('button', { name: 'Undo' })
+      fireEvent.click(undoButtons[0])
+
+      expect(screen.getByRole('link', { name: 'First Article' })).toBeInTheDocument()
+      expect(screen.queryByText('Deleted "First Article".')).not.toBeInTheDocument()
+      expect(screen.getByText('Deleted "Second Article".')).toBeInTheDocument()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000)
+      })
+
+      expect(deleteLink).toHaveBeenCalledTimes(1)
+      expect(deleteLink).toHaveBeenCalledWith('2', 'secret-token')
+      expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'First Article' })).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'Second Article' })).not.toBeInTheDocument()
+    })
+
     it('restores the link with an error message if the deferred delete call fails', async () => {
       vi.mocked(listLinks).mockResolvedValue(page([makeLink()]))
       vi.mocked(deleteLink).mockRejectedValue(new Error('Unauthorized'))
